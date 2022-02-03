@@ -73,8 +73,17 @@ class ReflexAgent(Agent):
         newGhostStates = successorGameState.getGhostStates()
         newScaredTimes = [ghostState.scaredTimer for ghostState in newGhostStates]
 
-        "*** YOUR CODE HERE ***"
-        return successorGameState.getScore()
+        ret = successorGameState.getScore()
+
+        if newFood.count() > 0:
+            distanceToFood = min(map(lambda food: abs(food[0] - newPos[0]) + abs(food[1] - newPos[1]), newFood.asList() ))
+            ret += 1.0 / float(distanceToFood)
+
+        # distanceToGhost = min(map(lambda ghost: abs(ghost.getPosition()[0] - newPos[0]) + abs(ghost.getPosition()[1] - newPos[1]), newGhostStates ))
+        # if distanceToGhost > 0:
+        #     ret += 1.0 - ( 1.0 / distanceToGhost )
+        
+        return ret
 
 def scoreEvaluationFunction(currentGameState):
     """
@@ -135,6 +144,26 @@ class MinimaxAgent(MultiAgentSearchAgent):
         Returns whether or not the game state is a losing state
         """
         "*** YOUR CODE HERE ***"
+        numberOfGhosts = gameState.getNumAgents() - 1
+
+        # Obtain all possible successors
+        legalActions = gameState.getLegalActions()
+        successorStates = [gameState.generatePacmanSuccessor(action) for action in legalActions]
+
+
+        
+        def maxValue(gameState):
+            v = -2**31 - 1 # negative infinity
+            for successorState in successorStates:
+                v = max(v, self.getAction(successorState))
+            return v
+
+        def minValue(gamneState):
+            v = 2**31 - 1 # positive infinity
+            for successorState in successorStates:
+                v = min(v, self.getAction(successorState))
+            return v
+            
         util.raiseNotDefined()
 
 class AlphaBetaAgent(MultiAgentSearchAgent):
