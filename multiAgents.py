@@ -121,6 +121,9 @@ class MinimaxAgent(MultiAgentSearchAgent):
     Your minimax agent (question 2)
     """
 
+    POS_INF = 2**31 - 1
+    NEG_INF = -2**31 - 1
+
     def getAction(self, gameState):
         """
         Returns the minimax action from the current gameState using self.depth
@@ -146,17 +149,18 @@ class MinimaxAgent(MultiAgentSearchAgent):
         """
         "*** YOUR CODE HERE ***"
 
-        return max(gameState.getLegalActions(0), key= lambda action: self.miniMaxHelper(gameState.generateSuccessor(0, action), depth=1, agent=1))
-        
+        # return max(gameState.getLegalActions(0), key= lambda action: self.miniMaxHelper(gameState.generateSuccessor(0, action), depth=1, agent=1))
+        return self.miniMaxHelper(gameState, 0, 0)
 
     def miniMaxHelper(self, gameState, depth, agent):
         # Base case
         if depth > self.depth or gameState.isWin() or gameState.isLose():
             return self.evaluationFunction(gameState) # Utility for leaf
         
-        successorStates = [gameState.generateSuccessor(agent, action) for action in gameState.getLegalActions(agent)] # All possible successors
+        legalActions = gameState.getLegalActions(agent)
+        successorStates = [gameState.generateSuccessor(agent, action) for action in legalActions] # All possible successors
         
-        v = -2**31 - 1 if agent == 0 else 2**31 - 1 # Initial utility as infinity
+        v = self.NEG_INF if agent == 0 else self.POS_INF # Initial utility as infinity
         for successorState in successorStates:
             if agent == 0:  # Pacman
                 v = max(v, self.miniMaxHelper(successorState, depth, 1))
@@ -166,49 +170,81 @@ class MinimaxAgent(MultiAgentSearchAgent):
                 v = min(v, self.miniMaxHelper(successorState, depth, agent + 1))
                 
         return v
+        
+    #   miniMaxHelper(self, gameState, depth, agent):
+    #     # Base case
+    #     if depth > self.depth or gameState.isWin() or gameState.isLose():
+    #         return self.evaluationFunction(gameState) # Utility for leaf
+        
+    #     legalActions = gameState.getLegalActions(agent)
+    #     successorStates = [gameState.generateSuccessor(agent, action) for action in legalActions] # All possible successors
+        
+    #     v = self.NEG_INF if agent == 0 else self.POS_INF # Initial utility as infinity
+    #     for successorState in successorStates:
+    #         if agent == 0:  # Pacman
+    #             v = max(v, self.miniMaxHelper(successorState, depth, 1))
+    #         elif agent == gameState.getNumAgents() - 1: # Last Ghost, next round is pacman
+    #             v = min(v, self.miniMaxHelper(successorState, depth + 1, 0))
+    #         else:   # Ghost
+    #             v = min(v, self.miniMaxHelper(successorState, depth, agent + 1))
+                
+    #     return v
 
 class AlphaBetaAgent(MultiAgentSearchAgent):
     """
     Your minimax agent with alpha-beta pruning (question 3)
     """
-    alpha = beta = None
+
+    POS_INF = 2**31 - 1
+    NEG_INF = -2**31 - 1
 
     def getAction(self, gameState):
         """
         Returns the minimax action using self.depth and self.evaluationFunction
         """
         "*** YOUR CODE HERE ***"
+        alpha, beta = self.NEG_INF, self.POS_INF
         
-        # legalActions = gameState.getLegalActions(0)
-        # successorStates = [gameState.generateSuccessor(0, action) for action in legalActions]
-        return max(gameState.getLegalActions(0), key= lambda action: self.alphaBetaHelper(gameState.generateSuccessor(0, action), depth=1, agent=1))
+        
 
-    def alphaBetaHelper(self, gameState, depth, agent):
+        legalActions = gameState.getLegalActions(0)
+        successorStates = [(action, self.alphaBetaHelper(gameState.generateSuccessor(0, action), 1, 1, alpha, beta)) for action in legalActions]
+        
+        bestAction = (None, self.NEG_INF)
+        for successorState in successorStates:
+            bestAction = max(bestAction, successorState, key= lambda action: action[1])
+            if bestAction[1] > beta:
+                return bestAction[0]
+            alpha = max(alpha, bestAction[1])
+
+        return bestAction[0]
+
+
+    def alphaBetaHelper(self, gameState, depth, agent, alpha, beta):
         # Base case
         if depth > self.depth or gameState.isWin() or gameState.isLose():
             return self.evaluationFunction(gameState) # Utility for leaf
         
         successorStates = [gameState.generateSuccessor(agent, action) for action in gameState.getLegalActions(agent)] # All possible successors
         
-        v = -2**31 - 1 if agent == 0 else 2**31 - 1 # Initial utility as infinity
+        v = self.NEG_INF if agent == 0 else self.POS_INF # Initial utility as infinity
         for successorState in successorStates:
             if agent == 0:  # Pacman
-                v = max(v, self.alphaBetaHelper(successorState, depth, 1))
-                if self.beta != None and v > self.beta:
+                v = max(v, self.alphaBetaHelper(successorState, depth, 1, alpha, beta))
+                if v > beta:
                     return v
-                self.alpha = max(self.alpha, v) if self.alpha != None else v
+                alpha = max(alpha, v) 
             elif agent == gameState.getNumAgents() - 1: # Last Ghost, next round is pacman
-                v = min(v, self.alphaBetaHelper(successorState, depth + 1, 0))
-                if self.alpha != None and v < self.alpha:
+                v = min(v, self.alphaBetaHelper(successorState, depth + 1, 0, alpha, beta))
+                if v < alpha:
                     return v
-                self.beta = min(self.beta, v) if self.beta != None else v
+                beta = min(beta, v) 
             else:   # Ghost
-                v = min(v, self.alphaBetaHelper(successorState, depth, agent + 1))
-                if self.alpha != None and v < self.alpha:
+                v = min(v, self.alphaBetaHelper(successorState, depth, agent + 1, alpha, beta))
+                if v < alpha:
                     return v
-                self.beta = min(self.beta, v) if self.beta != None else v     
+                beta = min(beta, v) 
 
-        print("Alpha: " + str(self.alpha) + " Beta: " + str(self.beta))
         return v
 
 class ExpectimaxAgent(MultiAgentSearchAgent):
